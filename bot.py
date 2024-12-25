@@ -34,9 +34,14 @@ def post(url, data):
 	return http_request(url, 'POST', data, {"Content-Type": "application/json"})
 
 def send_message(content):
-	post(WEBHOOK_URL, {
-		"content": "<@818564860484780083>\n" + content,
-	})
+	print("[Message]\n" + content + "\n[/Message]")
+	
+	try:
+		post(WEBHOOK_URL, {
+			"content": "<@818564860484780083>\n" + content,
+		})
+	except:
+		pass
 
 def get_app_updated_date_play(appid):
 	try:
