@@ -60,16 +60,25 @@ def rand_wait(base, variance):
 	sleep(base + (2 * variance * (random.random() - 0.5)))
 
 LAST_DATE = None
+CONSEC_ERRORS = 0
 
 def generate_report():
 	global LAST_DATE
+	global CONSEC_ERRORS
 	
 	date = get_app_updated_date_play("com.mediocre.smashhit")
 	
 	if not date:
 		print("Setting date for first time")
-		send_message("Failed to fetch date! Check that the bot is still working plz!")
+		
+		CONSEC_ERRORS += 1
+		
+		if CONSEC_ERRORS == 4:
+			send_message("Failed to fetch date four times in a row! Check that the bot is still working.")
+		
 		return
+	else:
+		CONSEC_ERRORS = 0
 	
 	if not LAST_DATE:
 		print("Setting date for first time")
