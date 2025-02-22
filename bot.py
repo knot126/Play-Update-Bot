@@ -11,6 +11,8 @@ from pathlib import Path
 from time import sleep
 
 WEBHOOK_URL = json.loads(Path("conf.json").read_text())["webhook_url"]
+PING_ERRORS = "<@818564860484780083>"
+PING_NEW_VERSION = "<@&1342761186353090590>"
 
 class Response:
 	def __init__(self, url, status, body, headers):
@@ -19,9 +21,30 @@ class Response:
 		self.body = body
 		self.headers = headers
 
+class Date():
+	def __init__(self, date):
+		self.string = date
+		self.date_set = set()
+		
+		for sub in date.split():
+			self.date_set.add(sub.strip(" \t\r\n\v\f,.<>;'/:?{}[]-=_+\\|()*&^%$#@!`~"))
+	
+	def __eq__(self, other):
+		if (len(self.date_set) == len(other.date_set)):
+			for v in self.date_set:
+				if v not in other.date_set:
+					return False
+			
+			return True
+		else:
+			return False
+	
+	def __repr__(self):
+		return self.string
+
 def http_request(url, method='GET', data=None, headers={}):
 	resp = urllib.request.urlopen(urllib.request.Request(url, data, method=method, headers={
-		"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0"
+		"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0"
 	} | headers))
 	data = resp.read()
 	r = Response(resp.url, resp.status, data, resp.headers)
@@ -38,7 +61,7 @@ def send_message(content):
 	
 	try:
 		post(WEBHOOK_URL, {
-			"content": "<@818564860484780083>\n" + content,
+			"content": content,
 		})
 	except:
 		pass
@@ -74,25 +97,25 @@ def generate_report():
 	date = get_app_updated_date_play("com.mediocre.smashhit")
 	
 	if not date:
-		print("Setting date for first time")
-		
 		CONSEC_ERRORS += 1
 		
 		if CONSEC_ERRORS == 4:
-			send_message("Failed to fetch date four times in a row! Check that the bot is still working.")
+			send_message(f"{PING_ERRORS} Failed to fetch date four times in a row! Check that the bot is still working.")
 		
 		return
 	else:
 		CONSEC_ERRORS = 0
 	
+	date = Date(date)
+	
 	if not LAST_DATE:
 		print("Setting date for first time")
 		LAST_DATE = date
-		send_message(f"Starting up!\nRecorded current update date as: {date}")
+		send_message(f"## Starting up!\nRecorded current update date as: {date}")
 	else:
 		if LAST_DATE != date:
 			print(f"{repr(LAST_DATE)} != {repr(date)}")
-			send_message(f"Smash Hit updated on Google Play!\nOld update date: {LAST_DATE}\nNew update date: {date}")
+			send_message(f"{PING_NEW_VERSION}\n## Smash Hit updated on Google Play!\nOld update date: {LAST_DATE}\nNew update date: {date}")
 			
 			LAST_DATE = date
 		else:
