@@ -13,6 +13,7 @@ from time import sleep
 WEBHOOK_URL = json.loads(Path("conf.json").read_text())["webhook_url"]
 PING_ERRORS = "<@818564860484780083>"
 PING_NEW_VERSION = "<@&1342761186353090590>"
+CHECK_IT = False
 
 class Response:
 	def __init__(self, url, status, body, headers):
@@ -67,6 +68,8 @@ def send_message(content):
 		pass
 
 def get_app_updated_date_play(appid):
+	if CHECK_IT: return random.choice(["17 Feb 2025", "Feb 17, 2025", "Mar 6, 2025", None])
+	
 	try:
 		r = http_request(f"https://play.google.com/store/apps/details?id={appid}")
 		r = r.body.decode("utf-8")
@@ -85,6 +88,8 @@ def get_app_updated_date_play(appid):
 		return None
 
 def get_app_version_ios(appurl):
+	if CHECK_IT: return random.choice(["1.5.5", "1.0.4", "1.0.3", None])
+	
 	try:
 		r = http_request(appurl)
 		r = r.body.decode("utf-8")
@@ -101,6 +106,74 @@ def get_app_version_ios(appurl):
 	except:
 		traceback.print_exc()
 		return None
+
+class UpdateTracker:
+	def __init__(self, display_name, identifier):
+		self.display_name = display_name
+		self.identifier = identifier
+		self.last = None
+		self.consec_errors = 0
+		self.check()
+
+class PlayTracker(UpdateTracker):
+	def check(self):
+		date = get_app_updated_date_play(self.identifier)
+		
+		if not date:
+			self.consec_errors += 1
+			
+			if self.consec_errors == 4:
+				return f"{PING_ERRORS} Failed to fetch google play update date for {self.display_name} four times in a row!"
+			else:
+				return None
+		else:
+			self.consec_errors = 0
+		
+		date = Date(date)
+		
+		if not self.last:
+			print(f"Setting {self.display_name} (Google Play) date for first time")
+			self.last = date
+		else:
+			prev = self.last
+			self.last = date
+			
+			if prev != date:
+				print(f"{prev} != {date}")
+				return f"{PING_NEW_VERSION}\n## {self.display_name} updated on Google Play!\nOld date: {prev}\nNew date: {date}"
+			else:
+				print(f"{prev} == {date}")
+	
+	def table(self):
+		return f"{self.display_name} (Android): {self.last}"
+
+class AppleTracker(UpdateTracker):
+	def check(self):
+		ver = get_app_version_ios(self.identifier)
+		
+		if not ver:
+			self.consec_errors += 1
+			
+			if self.consec_errors == 4:
+				return f"{PING_ERRORS} Failed to fetch apple app store version for {self.display_name} four times in a row!"
+		else:
+			self.consec_errors = 0
+		
+		if not self.last:
+			print(f"Setting {self.display_name} (App Store) version for first time")
+			self.last = ver
+		else:
+			prev = self.last
+			self.last = ver
+			
+			if prev != ver:
+				print(f"{prev} != {ver}")
+				return f"{PING_NEW_VERSION}\n## {self.display_name} updated on App Store!\nOld version: {prev}\nNew version: {ver}"
+			else:
+				print(f"{prev} == {ver}")
+	
+	def table(self):
+		return f"{self.display_name} (iOS): {self.last}"
 
 def rand_wait(base, variance):
 	sleep(base + (2 * variance * (random.random() - 0.5)))
@@ -151,7 +224,33 @@ def main():
 	while True:
 		generate_report()
 		rand_wait(60 * 30, 60 * 4)
-		# sleep(20)
+
+def main_new():
+	trackers = [
+		PlayTracker("Smash Hit", "com.mediocre.smashhit"),
+		AppleTracker("Smash Hit", "https://apps.apple.com/us/app/smash-hit/id603527166"),
+		AppleTracker("Smash Hit+", "https://apps.apple.com/us/app/smash-hit/id6503247519"),
+	]
+	
+	# Startup message
+	msg = "## Starting up!\nCurrent versions recorded as:\n"
+	
+	for t in trackers:
+		msg += t.table() + "\n"
+	
+	send_message(msg.rstrip())
+	
+	while True:
+		if CHECK_IT:
+			sleep(10)
+		else:
+			rand_wait(60 * 30, 60 * 5)
+		
+		for t in trackers:
+			msg = t.check()
+			
+			if msg:
+				send_message(msg)
 
 if __name__ == "__main__":
-	main()
+	main_new()
