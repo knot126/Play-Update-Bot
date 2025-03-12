@@ -84,23 +84,44 @@ def get_app_updated_date_play(appid):
 		traceback.print_exc()
 		return None
 
+def get_app_version_ios(appurl):
+	try:
+		r = http_request(appurl)
+		r = r.body.decode("utf-8")
+		i = r.index('whats-new__latest__version">Version ')
+		
+		if (i < 0):
+			print("Failed to parse App Store response: Could not find version string start")
+			return None
+		
+		d = r[i:i+100]
+		d = d.partition('>')[2].partition('<')[0][8:]
+		
+		return d
+	except:
+		traceback.print_exc()
+		return None
+
 def rand_wait(base, variance):
 	sleep(base + (2 * variance * (random.random() - 0.5)))
 
 LAST_DATE = None
+LAST_IOS_VER = None
 CONSEC_ERRORS = 0
 
 def generate_report():
 	global LAST_DATE
+	global LAST_IOS_VER
 	global CONSEC_ERRORS
 	
 	date = get_app_updated_date_play("com.mediocre.smashhit")
+	ios_ver = get_app_version_ios("https://apps.apple.com/us/app/smash-hit/id603527166")
 	
-	if not date:
+	if not date or not ios_ver:
 		CONSEC_ERRORS += 1
 		
 		if CONSEC_ERRORS == 4:
-			send_message(f"{PING_ERRORS} Failed to fetch date four times in a row! Check that the bot is still working.")
+			send_message(f"{PING_ERRORS} Failed to fetch data four times in a row! Check that the bot is still working.")
 		
 		return
 	else:
@@ -111,7 +132,8 @@ def generate_report():
 	if not LAST_DATE:
 		print("Setting date for first time")
 		LAST_DATE = date
-		send_message(f"## Starting up!\nRecorded current update date as: {date}")
+		LAST_IOS_VER = ios_ver
+		send_message(f"## Starting up!\nRecorded current Play Store update date as: {date}\nRecorded current app store version as: {ios_ver}")
 	else:
 		if LAST_DATE != date:
 			print(f"{repr(LAST_DATE)} != {repr(date)}")
@@ -120,6 +142,10 @@ def generate_report():
 			LAST_DATE = date
 		else:
 			print(f"{repr(LAST_DATE)} == {repr(date)}")
+		
+		if LAST_IOS_VER != ios_ver:
+			send_message(f"{PING_NEW_VERSION}\n## Smash Hit updated on App Store!\nOld version: {LAST_IOS_VER}\nNew version: {ios_ver}")
+			LAST_IOS_VER = ios_ver
 
 def main():
 	while True:
