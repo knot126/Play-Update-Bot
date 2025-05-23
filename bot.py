@@ -227,7 +227,7 @@ def main():
 		generate_report()
 		rand_wait(60 * 30, 60 * 4)
 
-def main_new():
+def do_checking():
 	trackers = [
 		PlayTracker("Smash Hit", "com.mediocre.smashhit"),
 		AppleTracker("Smash Hit", "https://apps.apple.com/us/app/smash-hit/id603527166"),
@@ -253,6 +253,12 @@ def main_new():
 			
 			if msg:
 				send_message(msg)
+
+def main_new():
+	try:
+		do_checking()
+	except KeyboardInterrupt:
+		print("Bye!")
 
 if __name__ == "__main__":
 	main_new()
