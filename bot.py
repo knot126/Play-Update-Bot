@@ -156,6 +156,8 @@ class AppleTracker(UpdateTracker):
 			
 			if self.consec_errors == 4:
 				return f"{PING_ERRORS} Failed to fetch apple app store version for {self.display_name} four times in a row!"
+			else:
+				return None
 		else:
 			self.consec_errors = 0
 		
